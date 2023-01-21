@@ -20,9 +20,6 @@ function App() {
   }
   function updateResult(event: any) {
     GameResult = event.target.value;
-    if (isEmptyOrSpaces(GameResult)) {
-      GameResult = "None";
-    }
   }
 
   function AddGame() {
@@ -32,17 +29,20 @@ function App() {
     client.deleteGame(GameId);
   }
   function SetGameState() {
+    if (isEmptyOrSpaces(GameResult)) {
+      GameResult = "None";
+    }
     client.setGameState(GameId, GameState, GameResult);
   }
 
   return (
     <>
-      
       <button onClick={client.initialize}>Initialize</button>
       <button onClick={client.reserveSpace}>Reserve</button>
       <button onClick={client.airdrop}>Airdrop</button>
       <br/>
       <br/>
+
       <label htmlFor="gameId">Game Id:  </label>
       <input id="gameId" type="number" onChange={updateId}/>
       <br/>
@@ -58,10 +58,17 @@ function App() {
       <button onClick={DeleteGame}>Delete Game</button>
       <br/>
       <button onClick={SetGameState}>Set Game State</button>
+      <br/>
+      <button onClick={client.collectTaxes}>Collect Taxes</button>
+      <br/>
+      <br/>
 
+      <button onClick={client.getState}>Get Program State</button>
       <br/>
+      <button onClick={client.getProgramBalance}>Get Program Balance</button>
       <br/>
-      <button onClick={client.getState}>Get State</button>
+      <button onClick={client.getOwnerBalance}>Get Owner Balance</button>
+      <br/>
 
     </>
   );

@@ -42,7 +42,6 @@ export const useClient = () =>  {
     return program;
   }
 
-
   async function getState() {
     console.log("Getting state...");
     const state = await program.account.programContract.fetch(contract.publicKey);
@@ -143,6 +142,24 @@ export const useClient = () =>  {
   async function airdrop() {
     const airdropSignature = await program.provider.connection.requestAirdrop(owner.publicKey, web3.LAMPORTS_PER_SOL * 2);
     await program.provider.connection.confirmTransaction(airdropSignature);
+    console.log("Recieved an airdrop of 2 SOL");
+  }
+
+  async function getOwnerBalance() {
+    const balance = await program.provider.connection.getBalance(owner.publicKey);
+    console.log("Owner Balance: %s", balance);
+  }
+
+  async function getProgramBalance() {
+    const [programPDA, _] = PublicKey.findProgramAddressSync(
+      [
+        utils.bytes.utf8.encode("program-wallet"),
+        contract.publicKey.toBuffer(),
+      ],
+      program.programId
+    );
+    const balance = await program.provider.connection.getBalance(programPDA);
+    console.log("Program Balance: %s", balance);
   }
 
   return {
@@ -153,6 +170,8 @@ export const useClient = () =>  {
     addScheduledGame,
     setGameState,
     deleteGame,
-    airdrop
+    airdrop,
+    getOwnerBalance,
+    getProgramBalance
   }
 }
