@@ -2,7 +2,7 @@ import * as anchor from "@project-serum/anchor";
 import { Program, AnchorProvider, web3 } from "@project-serum/anchor";
 import { BettingApp, IDL } from "./betting_app";
 import { PublicKey } from "@solana/web3.js";
-import { useAnchorWallet } from "@solana/wallet-adapter-react";
+import { useAnchorWallet, AnchorWallet } from "@solana/wallet-adapter-react";
 
 export const useClient = () => {
 
@@ -61,7 +61,7 @@ export const useClient = () => {
         owner: owner.publicKey,
         contract: contract.publicKey,
       })
-      .signers(owner instanceof (anchor.Wallet as any) ? [] : [owner])
+      .signers(owner instanceof (wallet as any) ? [] : [owner])
       .rpc();
   }
   
@@ -81,7 +81,7 @@ export const useClient = () => {
         contract: contract.publicKey,
         programWallet: programPDA,
       })
-      .signers(owner instanceof (anchor.Wallet as any) ? [] : [owner])
+      .signers(owner instanceof (wallet as any) ? [] : [owner])
       .rpc();
   }
   
@@ -92,7 +92,7 @@ export const useClient = () => {
         owner: owner.publicKey,
         contract: contract.publicKey,
       })
-      .signers(owner instanceof (anchor.Wallet as any) ? [] : [owner])
+      .signers(owner instanceof (wallet as any) ? [] : [owner])
       .rpc();
   }
   
@@ -103,7 +103,7 @@ export const useClient = () => {
         owner: owner.publicKey,
         contract: contract.publicKey,
       })
-      .signers(owner instanceof (anchor.Wallet as any) ? [] : [owner])
+      .signers(owner instanceof (wallet as any) ? [] : [owner])
       .rpc();
   }
   
@@ -114,7 +114,7 @@ export const useClient = () => {
         owner: owner.publicKey,
         contract: contract.publicKey,
       })
-      .signers(owner instanceof (anchor.Wallet as any) ? [] : [owner])
+      .signers(owner instanceof (wallet as any) ? [] : [owner])
       .rpc();
   }
   
