@@ -43,7 +43,6 @@ export const useClient = () =>  {
   }
 
   async function getState() {
-    console.log("Getting state...");
     const state = await program.account.programContract.fetch(contract.publicKey);
     console.log(state);
     return state;
@@ -151,15 +150,18 @@ export const useClient = () =>  {
   }
 
   async function getProgramBalance() {
-    const [programPDA, _] = PublicKey.findProgramAddressSync(
+    const [programPDA, ] = PublicKey.findProgramAddressSync(
       [
         utils.bytes.utf8.encode("program-wallet"),
         contract.publicKey.toBuffer(),
       ],
       program.programId
     );
+    console.log(programPDA.toString());
     const balance = await program.provider.connection.getBalance(programPDA);
     console.log("Program Balance: %s", balance);
+    const info = await program.provider.connection.getAccountInfo(programPDA);
+    console.log(info);
   }
 
   return {
