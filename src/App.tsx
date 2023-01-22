@@ -2,8 +2,9 @@ import { useClient } from './Client';
 import * as buffer from "buffer";
 window.Buffer = buffer.Buffer;
 
+
 function isEmptyOrSpaces(str: string){
-  return str === null || str.match(/^ *$/) !== null;
+  return !str?.trim?.()
 }
 
 function App() {
@@ -33,6 +34,15 @@ function App() {
       GameResult = "None";
     }
     client.setGameState(GameId, GameState, GameResult);
+  }
+  function FetchData() {
+    fetch('/v4/competitions/PL/matches?status=SCHEDULED', { 
+      headers: {
+        "X-Auth-Token": "3c3eb8dadad249f5a9f03302569745a6"
+      }
+    })
+    .then((response) => response.json())
+    .then((data) => console.log(data));
   }
 
   return (
@@ -69,6 +79,8 @@ function App() {
       <br/>
       <button onClick={client.getOwnerBalance}>Get Owner Balance</button>
       <br/>
+      <br/>
+      <button onClick={FetchData}>Fetch data</button>
 
     </>
   );
