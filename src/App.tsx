@@ -1,7 +1,9 @@
+import React, { useEffect } from 'react';
 import { useClient } from './Client';
 import * as buffer from "buffer";
 window.Buffer = buffer.Buffer;
 
+const SYNC_IN_BACKGROUND = true;
 
 function isEmptyOrSpaces(str: string){
   return !str?.trim?.()
@@ -20,30 +22,22 @@ function App() {
     GameState = event.target.value;
   }
   function updateResult(event: any) {
-    GameResult = event.target.value;
+    let val = event.target.value;
+    if (isEmptyOrSpaces(val)) {
+      val = "None";
+    }
+    GameResult = val;
   }
 
-  function AddGame() {
-    client.addScheduledGame(GameId);
-  }
-  function DeleteGame() {
-    client.deleteGame(GameId);
-  }
-  function SetGameState() {
-    if (isEmptyOrSpaces(GameResult)) {
-      GameResult = "None";
+  useEffect(() => {
+    let interval: any;
+    if(SYNC_IN_BACKGROUND) {
+      interval = setInterval(() => {
+        client.SyncData();
+      }, 1000 * 60);
+      return () => clearInterval(interval);
     }
-    client.setGameState(GameId, GameState, GameResult);
-  }
-  function FetchData() {
-    fetch('/v4/competitions/PL/matches?status=SCHEDULED', { 
-      headers: {
-        "X-Auth-Token": "3c3eb8dadad249f5a9f03302569745a6"
-      }
-    })
-    .then((response) => response.json())
-    .then((data) => console.log(data));
-  }
+  }, );
 
   return (
     <>
@@ -63,25 +57,24 @@ function App() {
       <input id="result" onChange={updateResult}/>
       <br/>
       <br/>
-      <button onClick={AddGame}>Add Game</button>
+      <button onClick={() => client.addScheduledGame(GameId)}>Add Game</button>
       <br/>
-      <button onClick={DeleteGame}>Delete Game</button>
+      <button onClick={() => client.deleteGame(GameId)}>Delete Game</button>
       <br/>
-      <button onClick={SetGameState}>Set Game State</button>
+      <button onClick={() => client.setGameState(GameId, GameState, GameResult)}>Set Game State</button>
       <br/>
-      <button onClick={client.collectTaxes}>Collect Taxes</button>
+      <button onClick={() => client.collectTaxes()}>Collect Taxes</button>
       <br/>
       <br/>
 
-      <button onClick={client.getState}>Get Program State</button>
+      <button onClick={async () => console.log(await client.getState())}>Get Program State</button>
       <br/>
       <button onClick={client.getProgramBalance}>Get Program Balance</button>
       <br/>
       <button onClick={client.getOwnerBalance}>Get Owner Balance</button>
+      {/* <br/>
       <br/>
-      <br/>
-      <button onClick={FetchData}>Fetch data</button>
-
+      <button onClick={FetchData}>Fetch data</button> */}
     </>
   );
 }

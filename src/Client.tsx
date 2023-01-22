@@ -28,6 +28,30 @@ export const useClient = () =>  {
   const contract = web3.Keypair.fromSecretKey(new Uint8Array([45,76,138,74,253,72,12,115,129,212,212,40,78,40,230,32,195,160,21,186,197,175,192,95,240,57,5,162,221,25,101,193,219,181,92,128,246,1,95,116,82,226,157,143,56,18,196,132,7,37,69,157,11,102,50,57,248,72,75,197,25,112,10,120]));
   const program = getProgram()
   
+  const stateMap = new Map([
+    ["SCHEDULED", "Scheduled"],
+    ["POSTPONED", "Scheduled"],
+    ["LIVE", "Live"],
+    ["IN_PLAY", "Live"],
+    ["PAUSED", "Live"],
+    ["FINISHED", "Finished"],
+    ["SUSPENDED", "Canceled"],
+    ["CANCELLED", "Canceled"],
+  ]);
+  const resultMap = new Map([
+    ["HOME_TEAM","HomeVictory"],
+    ["AWAY_TEAM","AwayVictory"],
+    ["DRAW","Tie"],
+    ["None","None"],
+  ]);
+  const programStateMap = new Map([
+    ["{\"scheduled\":{}}", "Scheduled"],
+    ["{\"live\":{}}", "Live"],
+    ["{\"finished\":{}}", "Finished"],
+    ["{\"cancelled\":{}}", "Canceled"],
+  ])
+  const timeBeforeDelete = 1000 * 60 * 60 * 24;
+
   function getProgram() {
     const network = "https://api.devnet.solana.com";
     const connection = new web3.Connection(network, "processed");
@@ -44,7 +68,6 @@ export const useClient = () =>  {
 
   async function getState() {
     const state = await program.account.programContract.fetch(contract.publicKey);
-    console.log(state);
     return state;
   }
 
@@ -100,6 +123,7 @@ export const useClient = () =>  {
       })
       .signers([owner])
       .rpc();
+    console.log("Taxes Collected");
   }
   
   async function addScheduledGame(gameId: any) {
@@ -157,11 +181,77 @@ export const useClient = () =>  {
       ],
       program.programId
     );
-    console.log(programPDA.toString());
     const balance = await program.provider.connection.getBalance(programPDA);
     console.log("Program Balance: %s", balance);
-    const info = await program.provider.connection.getAccountInfo(programPDA);
-    console.log(info);
+  }
+
+  async function FetchScheduledGames() {
+    const data = await fetch('/v4/competitions/PL/matches?status=SCHEDULED', { 
+      headers: {
+        "X-Auth-Token": "3c3eb8dadad249f5a9f03302569745a6"
+      }
+    })
+    return data;
+  }
+  async function FetchGamesWithIds(ids: number[]) {
+    const data = await fetch(`/v4/matches?ids=${encodeURIComponent(ids.join(","))}`, { 
+      headers: {
+        "X-Auth-Token": "3c3eb8dadad249f5a9f03302569745a6"
+      },
+    })
+    return data;
+  }
+
+  async function SyncData() {
+    //get scheduled games
+    let footballData = await FetchScheduledGames().then(d => d.json());
+    const upcomingGames = footballData.matches.sort((a: string, b: string) => {
+      return (new Date(a)).getTime() - (new Date(b)).getTime();
+    }).slice(0, 10);
+    const programState = await getState();
+    
+    //add new scheduled games
+    const gamesToAdd = upcomingGames.filter((g: { id: number; }) => {
+      return !programState.activeGames.map(x => x.id).includes(g.id);
+    }).map((x: { id: any; }) => x.id); 
+    gamesToAdd.forEach(async (id: any) => {
+      await addScheduledGame(id);
+    });
+
+    //get games that did not appear on scheduled (are live or finished)
+    const gamesToUpdate = programState.activeGames.filter((g) => {
+      return !upcomingGames.map((x: { id: any; }) => x.id).includes(g.id);
+    }).map(x => x.id);
+    footballData = await FetchGamesWithIds(gamesToUpdate).then(d => d.json());
+    const programGames = programState.activeGames.filter(g => gamesToUpdate.includes(g.id));
+    const activeGames = footballData.matches.map((g: any) => {
+      return {
+        id: g.id,
+        state: stateMap.get(g.status),
+        result: resultMap.get(g.score?.winner ?? "None"),
+        date: new Date(g.utcDate),
+      };
+    });
+
+    //update game state
+    programGames.forEach(async g => {
+      const game = activeGames.find((x: any) => x.id === g.id);
+      if(game.state !== "Finished") {
+        game.result = "None";
+      }
+      if(programStateMap.get(JSON.stringify(g.state)) !== game.state) {
+        await setGameState(game.id, game.state, game.result);
+      }
+    });
+
+    //delete old games
+    const currentDate = new Date();
+    activeGames.forEach(async (g: any) => {
+      if(currentDate.getTime() - g.date.getTime() >= timeBeforeDelete) {
+        await deleteGame(g.id);
+      }
+    });
+
   }
 
   return {
@@ -174,6 +264,7 @@ export const useClient = () =>  {
     deleteGame,
     airdrop,
     getOwnerBalance,
-    getProgramBalance
+    getProgramBalance,
+    SyncData
   }
 }
